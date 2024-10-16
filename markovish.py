@@ -1,7 +1,6 @@
 # dependencies are here
-import datetime
+from datetime import datetime
 from random import randint
-
 import pandas as pd
 
 
@@ -26,6 +25,7 @@ def txt_seq_read(file, start='1', stop='2', include=True, printres=True):
         print('Check start symbol!')
     # create 2d arrray
     result = []
+    box=[] # it worked well without this line but code inspector asked me to add it
     for i in range(len(data)):
         if data[i] == start:  # and i <= 1: # first case - we get 1st sequence
             box = []
@@ -44,7 +44,7 @@ def txt_seq_read(file, start='1', stop='2', include=True, printres=True):
 
 def blanc_table(data, start='1', stop='2', order=True, include=False):
     """ creates blank table from 2D array, by default not include start and stop
-    tries to order by occurence in a sequence"""
+    tries to order by occurrence in a sequence"""
     flatten = []
     for act in data:  # create flat array
         flatten.extend(act)
@@ -63,7 +63,7 @@ def blanc_table(data, start='1', stop='2', order=True, include=False):
                 for j in range(len(act)):
                     if act[j] == i:
                         chart.get(act[j]).append(j)
-            # chart[i] = sum(chart[i]) / len(chart[i])
+            chart[i] = sum(chart[i]) / len(chart[i])
         chart = dict(sorted(chart.items(), key=lambda item: item[1]))
         labels = chart.keys()
     else:
@@ -77,9 +77,6 @@ def freq_table(blanc, data, flatten=False, saveres=True):
     2D array by default, or 1D array if flatten = True"""
     table = blanc.copy()
     if flatten:  # seems that this block is useless, but let it be here
-        # ACHTUNG: BUG IS HERE, CLEAN IT - EXCEED LEVEL OF CYCLING
-        # Haaaah, it does not make sense so I'll do it later
-        print('flattening can work incorrectly')
         flatten = []
         for act in data:  # create flat array
             flatten.extend(act)
@@ -91,7 +88,7 @@ def freq_table(blanc, data, flatten=False, saveres=True):
                         # if we get data fit to headers - add 1 to a cell
                         if (data[i], data[i + 1]) == (start, end):
                             table.loc[start, end] = table.loc[start, end] + 1
-    else:  # переберем строки и столбцы
+    else:
         for start in table.index:
             for end in table.index:
                 for act in data:
@@ -100,15 +97,15 @@ def freq_table(blanc, data, flatten=False, saveres=True):
                             if (act[i], act[i + 1]) == (start, end):  # запишем единичку в значение данной ячейки
                                 table.loc[start, end] = table.loc[start, end] + 1
     if saveres:
-        fname = datetime.datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transition_freq__table.xlsx'
+        fname = datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transition_freq__table.xlsx'
         table.to_excel(fname)
     return table
 
 
 def prob_table(blanc, trans, rd=2, saveres=True):
-    """Recieves blanc and raw transitions table (pd DataFrames)
+    """Receives blanc and raw transitions table (pd DataFrames)
     returns probabilities pd DataFrame
-    args: round - nr of symbols after comma, defautl 2"""
+    args: round - nr of symbols after comma, default 2"""
     freq = blanc.copy()
     for start in trans.index:
         for end in trans.index:
@@ -116,7 +113,7 @@ def prob_table(blanc, trans, rd=2, saveres=True):
             if trans.loc[start, :].sum() != 0:
                 freq.loc[start, end] = round(trans.loc[start, end] / trans.loc[start, :].sum(), rd)
     if saveres:
-        fname = datetime.datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transitions_probability_table.xlsx'
+        fname = datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transitions_probability_table.xlsx'
         freq.to_excel(fname)
     return freq
 
@@ -154,9 +151,8 @@ def get_seq_from_lens(file, sep=' - ', flatten=False):
         data = f.read().split('\n\n')  # режем по двойному разрыву строки
         data = [observ.split('\n') for observ in data]  # каждую строку превращаем в список
     result = []
-
+    error_count = 0
     for observ in data:  # проходим по все наблюдениям из списка
-        error_count = 0
         for line in observ:  # check data syntax
             condition = sep in line
             if not condition:
