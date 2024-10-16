@@ -30,7 +30,7 @@ def maxlen(data):
     """service func returns max led of 2d array element"""
     pass
 
-def txt_seq_read(file='mark.txt', start='1', stop='2', include=True, printres=True):
+def txt_seq_read(file, start='1', stop='2', include=True, printres=True):
     """func gets txt file with a sequence of acts
     convert to 2D array by stop and start symbols
     prints summary
@@ -65,7 +65,7 @@ def txt_seq_read(file='mark.txt', start='1', stop='2', include=True, printres=Tr
         print(f'All data length = {len(data)}, includes {len(result)} sequences.')        
     return result
 
-def make_blanc_table(data, start='1', stop='2', order=True, include=False):
+def blanc_table(data, start='1', stop='2', order=True, include=False):
     """ creates blank table from 2D array, by default not include start and stop
     tries to order by occurence in a sequence"""
     flatten = []
@@ -95,12 +95,14 @@ def make_blanc_table(data, start='1', stop='2', order=True, include=False):
     blanc = pd.DataFrame(0.0, index=labels, columns=labels)
     return blanc
 
-def transitions_table(blanc, data, flatten=False):
+def freq_table(blanc, data, flatten=False, saveres=True):
     """Creates markov transitions table to blanc tble from 
     2D array by default, or 1D array if flatten = True"""
     table = blanc.copy()
     if flatten: # seems that this block is useless, but let it be here
         # ACHTUNG: BUG IS HERE, CLEAN IT - EXCEED LEVEL OF CYCLING
+        # Haaaah, it does not make sense so I'll do it later
+        print('flattening can work incorrectly')
         flatten = []
         for act in data: # create flat array
             flatten.extend(act)
@@ -119,13 +121,14 @@ def transitions_table(blanc, data, flatten=False):
                         if i + 1 < len(act): # если мы нашли в данных пару, которая соответствует заголовку столбца и строки
                             if (act[i], act[i+1]) == (start, end): # запишем единичку в значение данной ячейки
                                 table.loc[start, end] = table.loc[start, end] + 1
-    fname = datetime.datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transitions_raw_table.xlsx'
-    table.to_excel(fname)
+    if saveres:
+        fname = datetime.datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transition_freq__table.xlsx'
+        table.to_excel(fname)
     return table
 
-def freq_table(trans, blanc, rd=2):
-    """Recieves raw transitions table
-    returns frequncies
+def prob_table(blanc, trans, rd=2, saveres=True):
+    """Recieves blanc and raw transitions table (pd DataFrames)
+    returns probabilities pd DataFrame
     args: round - nr of symbols after comma, defautl 2"""
     freq = blanc.copy()
     for start in trans.index:
@@ -133,8 +136,9 @@ def freq_table(trans, blanc, rd=2):
             freq = freq.loc[:].astype(float)
             if trans.loc[start,:].sum() != 0:
                 freq.loc[start, end] = round(trans.loc[start, end] / trans.loc[start,:].sum(), rd)
-    fname = datetime.datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transitions_freq_table.xlsx'
-    freq.to_excel(fname)
+    if saveres:
+        fname = datetime.datetime.now().strftime('%d_%b_%Y_%H-%M') + '_transitions_probability_table.xlsx'
+        freq.to_excel(fname)
     return freq
 
 def permutate(data, iters=9999):
